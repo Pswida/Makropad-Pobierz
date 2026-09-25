@@ -33,6 +33,17 @@
     --md-sys-color-primary: #34d27b; --md-sys-color-on-primary: #06301c;
     --esp-tools-button-color: #34d27b; --esp-tools-button-text-color: #06301c;
   }
+  html { scroll-behavior: smooth; }
+  .hero-img { display: block; width: 100%; height: auto; border-radius: 10px; margin: 0 0 20px; }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .app-btn {
+    display: inline-flex; align-items: center; gap: 10px; text-decoration: none;
+    background: var(--panel-3); color: var(--text); border: 1px solid var(--border); border-radius: 10px;
+    font-size: 16.5px; font-weight: 600; padding: 13px 22px; transition: border-color .12s;
+  }
+  .app-btn:hover { border-color: var(--accent); }
+  .app-btn:focus-visible { outline: 3px solid rgba(52,210,123,0.45); outline-offset: 3px; }
+  .app-btn svg { width: 20px; height: 20px; fill: var(--accent); }
   .install-btn {
     display: inline-flex; align-items: center; gap: 10px; cursor: pointer;
     background: var(--accent); color: #06301c; border: 0; border-radius: 10px;
@@ -89,13 +100,12 @@
   <h1>Wgrywanie firmware makropada</h1>
   <p class="ver" id="ver">&nbsp;</p>
   <p class="notes" id="notes" hidden></p>
-  
-  
 
   <section class="flash-card">
-  <img src="0.jpg"/>
+    <img class="hero-img" src="0.jpg" alt="Makropad" width="1263" height="947">
     <p>Podłącz makropad kablem USB i kliknij przycisk. Przeglądarka sama wgra najnowszy firmware — bez Arduino IDE i bez instalowania czegokolwiek.</p>
     <div class="blocked" id="flashBlocked" hidden></div>
+    <div class="actions">
     <esp-web-install-button manifest="manifest.json" id="installBtn">
       <button slot="activate" class="install-btn">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 10h5l-6 6-6-6h5V3h2v7Zm-9 9h16v-7h2v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-8h2v7Z"/></svg>
@@ -104,6 +114,11 @@
       <span slot="unsupported" class="blocked">Ta przeglądarka nie potrafi łączyć się z urządzeniami USB. Otwórz tę stronę w <b>Chrome</b> albo <b>Edge</b> na komputerze (Windows, macOS, Linux).</span>
       <span slot="not-allowed" class="blocked">Wgrywanie działa tylko na stronie otwartej przez <b>https://</b>. Otwórz adres strony z GitHuba, a nie zapisany plik.</span>
     </esp-web-install-button>
+    <a class="app-btn" href="#app">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4h2v12.17l5.59-5.58L20 12l-8 8-8-8 1.41-1.41L11 16.17V4Z"/></svg>
+      Pobierz aplikację
+    </a>
+    </div>
   </section>
 
   <h2>Krok po kroku</h2>
