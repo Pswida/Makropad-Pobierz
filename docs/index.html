@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Makropad — wgrywanie firmware</title>
+<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+<style>
+  :root {
+    --bg: #111214; --panel: #1a1b1e; --panel-2: #212226; --panel-3: #292b30;
+    --border: #35373e; --border-soft: #27292e;
+    --text: #f4f5f7; --text-dim: #c6c9d1; --text-faint: #979ca8;
+    --accent: #34d27b; --accent-soft: rgba(52,210,123,0.13);
+    --warn: #f5b93b; --danger: #f06272;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 15.5px; line-height: 1.55;
+  }
+  main { max-width: 680px; margin: 0 auto; padding: 56px 22px 64px; }
+  h1 { font-size: 30px; line-height: 1.2; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .ver { color: var(--text-faint); font-size: 14px; margin: 0 0 30px; min-height: 1.5em; }
+  .ver b { color: var(--accent); font-weight: 600; }
+
+  .flash-card {
+    background: var(--panel); border: 1px solid var(--border-soft); border-radius: 14px;
+    padding: 26px; margin-bottom: 34px;
+  }
+  .flash-card p { margin: 0 0 18px; color: var(--text-dim); }
+  esp-web-install-button {
+    --md-sys-color-primary: #34d27b; --md-sys-color-on-primary: #06301c;
+    --esp-tools-button-color: #34d27b; --esp-tools-button-text-color: #06301c;
+  }
+  .install-btn {
+    display: inline-flex; align-items: center; gap: 10px; cursor: pointer;
+    background: var(--accent); color: #06301c; border: 0; border-radius: 10px;
+    font: inherit; font-size: 16.5px; font-weight: 700; padding: 14px 26px;
+    transition: filter .12s, transform .12s;
+  }
+  .install-btn:hover { filter: brightness(1.08); }
+  .install-btn:active { transform: translateY(1px); }
+  .install-btn:focus-visible { outline: 3px solid rgba(52,210,123,0.45); outline-offset: 3px; }
+  .install-btn svg { width: 20px; height: 20px; fill: currentColor; }
+  .blocked {
+    display: block; background: rgba(240,98,114,0.1); border: 1px solid rgba(240,98,114,0.4);
+    border-radius: 10px; padding: 12px 14px; color: #ffc2c9;
+  }
+
+  [hidden] { display: none !important; }
+  h2 { font-size: 18px; margin: 34px 0 12px; }
+  ol.steps { margin: 0; padding-left: 22px; }
+  ol.steps li { margin-bottom: 10px; color: var(--text-dim); }
+  ol.steps li b { color: var(--text); }
+  .keep {
+    margin-top: 16px; background: var(--accent-soft); border: 1px solid rgba(52,210,123,0.35);
+    border-radius: 10px; padding: 12px 14px; color: var(--text-dim);
+  }
+  .keep b { color: var(--accent); }
+  dl.trouble { margin: 0; }
+  dl.trouble dt { font-weight: 600; margin-top: 14px; }
+  dl.trouble dd { margin: 4px 0 0; color: var(--text-dim); }
+  code { background: var(--panel-3); border-radius: 5px; padding: 1px 6px; font-size: 13.5px; }
+  a { color: var(--accent); }
+  .notes { white-space: pre-line; color: var(--text-dim); margin: -18px 0 30px; }
+  .app-card {
+    margin-top: 40px; background: var(--panel); border: 1px solid var(--border-soft); border-radius: 14px; padding: 24px 26px;
+  }
+  .app-card h2 { margin: 0 0 6px; }
+  .app-card > p { margin: 0 0 18px; color: var(--text-dim); }
+  .dl-list { display: flex; flex-wrap: wrap; gap: 10px; }
+  .dl {
+    display: inline-flex; flex-direction: column; gap: 1px; text-decoration: none;
+    background: var(--panel-3); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px; color: var(--text);
+  }
+  .dl:hover { border-color: var(--accent); }
+  .dl:focus-visible { outline: 3px solid rgba(52,210,123,0.45); outline-offset: 2px; }
+  .dl b { font-size: 15px; }
+  .dl small { color: var(--text-faint); font-size: 12.5px; }
+  .dl.main { background: var(--accent-soft); border-color: rgba(52,210,123,0.55); }
+  .dl.main b { color: var(--accent); }
+  .app-meta { margin: 14px 0 0; font-size: 13.5px; color: var(--text-faint); }
+  footer { margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--border-soft); color: var(--text-faint); font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Wgrywanie firmware makropada</h1>
+  <p class="ver" id="ver">&nbsp;</p>
+  <p class="notes" id="notes" hidden></p>
+
+  <section class="flash-card">
+    <p>Podłącz makropad kablem USB i kliknij przycisk. Przeglądarka sama wgra najnowszy firmware — bez Arduino IDE i bez instalowania czegokolwiek.</p>
+    <div class="blocked" id="flashBlocked" hidden></div>
+    <esp-web-install-button manifest="manifest.json" id="installBtn">
+      <button slot="activate" class="install-btn">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 10h5l-6 6-6-6h5V3h2v7Zm-9 9h16v-7h2v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-8h2v7Z"/></svg>
+        Wgraj firmware
+      </button>
+      <span slot="unsupported" class="blocked">Ta przeglądarka nie potrafi łączyć się z urządzeniami USB. Otwórz tę stronę w <b>Chrome</b> albo <b>Edge</b> na komputerze (Windows, macOS, Linux).</span>
+      <span slot="not-allowed" class="blocked">Wgrywanie działa tylko na stronie otwartej przez <b>https://</b>. Otwórz adres strony z GitHuba, a nie zapisany plik.</span>
+    </esp-web-install-button>
+  </section>
+
+  <h2>Krok po kroku</h2>
+  <ol class="steps">
+    <li><b>Zamknij aplikację Makropad Projektant</b> (i monitor portu w Arduino IDE). Port USB może mieć tylko jednego właściciela naraz.</li>
+    <li><b>Podłącz makropad</b> kablem USB z przesyłem danych — kabel tylko do ładowania nie wystarczy.</li>
+    <li>Kliknij <b>Wgraj firmware</b> i wybierz port makropada z listy (zwykle „USB JTAG/serial debug unit” albo port <code>COM</code>).</li>
+    <li>W oknie, które się pojawi, wybierz <b>Install Makropad</b>. Wgrywanie trwa około minuty — nie odłączaj kabla.</li>
+    <li>Po zakończeniu makropad uruchomi się sam z nowym firmware. Ekran mignie dwa razy — to celowy, pełny restart, po którym Bluetooth startuje od nowa.</li>
+  </ol>
+  <div class="keep">
+    Jeśli pojawi się pytanie <b>„Erase device”</b>, zostaw je <b>niezaznaczone</b> — wtedy ekrany, ikony, tło i gesty zapisane na urządzeniu zostają. Zaznacz je tylko wtedy, gdy chcesz wyczyścić urządzenie do zera (np. gdy po aktualizacji nie chce się poprawnie uruchomić).
+  </div>
+
+  <h2>Coś nie działa?</h2>
+  <dl class="trouble">
+    <dt>Na liście nie ma żadnego portu</dt>
+    <dd>Spróbuj innego kabla lub gniazda USB. Na Windowsie sprawdź w Menedżerze urządzeń → „Porty (COM i LPT)”, czy port się pojawia po podłączeniu.</dd>
+    <dt>„Failed to connect” albo wgrywanie nie startuje</dt>
+    <dd>Odłącz makropad, <b>przytrzymaj przycisk BOOT</b> na płytce, podłącz kabel, puść przycisk i spróbuj jeszcze raz. Po wgraniu odłącz i podłącz kabel ponownie, żeby urządzenie wystartowało normalnie.</dd>
+    <dt>Po wgraniu kropka Bluetooth miga na czerwono</dt>
+    <dd>Odłącz kabel USB na kilka sekund i podłącz ponownie. Jeśli komputer nadal się nie łączy, usuń makropad z listy urządzeń Bluetooth w systemie i sparuj go jeszcze raz.</dd>
+    <dt>„Failed to open serial port” / port zajęty</dt>
+    <dd>Port trzyma inny program — zamknij Makropad Projektant, Arduino IDE i inne karty z panelem makropada.</dd>
+  </dl>
+
+  <section class="app-card" id="app">
+    <h2>Aplikacja Makropad Projektant</h2>
+    <p>Program na komputer do projektowania ekranów, przycisków i gestów oraz wysyłania ich na makropad.</p>
+    <div class="dl-list" id="dlList">
+      <a class="dl main" href="https://github.com/Pswida/Makropad-pobierz/releases/latest"><b>Pobierz najnowszą wersję</b><small>strona wydań na GitHubie</small></a>
+    </div>
+    <p class="app-meta" id="appMeta"></p>
+  </section>
+</main>
+<script>
+  // Zamiast mało mówiącego „Failed to download manifest” — konkretna przyczyna i co zrobić.
+  function blockFlash(html) {
+    const b = document.getElementById('flashBlocked');
+    b.innerHTML = html; b.hidden = false;
+    document.getElementById('installBtn').hidden = true;
+  }
+  if (location.protocol === 'file:') {
+    blockFlash('Strona jest otwarta jako plik z dysku — w ten sposób przeglądarka nie wczyta firmware. ' +
+      'Do testów na komputerze uruchom <b>podglad-strony.bat</b> (w głównym folderze repozytorium) — otworzy stronę pod adresem <b>http://localhost:8080</b>. ' +
+      'Docelowo wchodzi się na adres strony z GitHub Pages.');
+  }
+  fetch('manifest.json', { cache: 'no-store' })
+    .then(r => r.json())
+    .then(async m => {
+      const v = document.getElementById('ver');
+      if (!m.version || m.version === '0.0.0') {
+        v.textContent = 'Firmware nie został jeszcze opublikowany.';
+        blockFlash('Na stronie nie ma jeszcze firmware. Wyeksportuj go w Arduino IDE (Szkic → Eksportuj skompilowany plik binarny) i przeciągnij folder szkicu na <b>firmware.bat</b>.');
+        return;
+      }
+      // czy wszystkie pliki z manifestu naprawdę są na serwerze
+      const parts = ((m.builds || [])[0] || {}).parts || [];
+      const missing = [];
+      for (const pt of parts) {
+        try { const r = await fetch(pt.path, { method: 'HEAD', cache: 'no-store' }); if (!r.ok) missing.push(pt.path); }
+        catch (e) { missing.push(pt.path); }
+      }
+      if (missing.length) blockFlash('Brakuje plików firmware: <b>' + missing.join(', ') + '</b>. Opublikuj firmware jeszcze raz przez <b>firmware.bat</b>.');
+      v.innerHTML = 'Aktualna wersja firmware: <b></b>';
+      v.querySelector('b').textContent = m.version;
+      if (m.date) v.append(', wydana ' + new Date(m.date + 'T12:00:00').toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }));
+      if (m.notes) { const n = document.getElementById('notes'); n.textContent = m.notes; n.hidden = false; }
+    })
+    .catch(() => {});
+
+  // ===== Najnowsze wydanie aplikacji (GitHub Releases) =====
+  // Linki budujemy z API GitHuba, więc zawsze wskazują ostatnie wydanie — bez ręcznej zmiany
+  // strony. Gdy API nie odpowie (limit zapytań, brak sieci), zostaje link do strony wydań.
+  (async () => {
+    const REPO = 'Pswida/Makropad-pobierz';   // PUBLICZNE repozytorium z wydaniami (kod aplikacji jest w prywatnym)
+    let rel;
+    try {
+      const r = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, { headers: { Accept: 'application/vnd.github+json' } });
+      if (!r.ok) return;
+      rel = await r.json();
+    } catch (e) { return; }
+    const assets = rel.assets || [];
+    const KINDS = [
+      { os: 'win',   test: n => /setup.*\.exe$/i.test(n),    title: 'Windows — instalator', note: 'zalecane' },
+      { os: 'win',   test: n => /portable.*\.exe$/i.test(n), title: 'Windows — wersja przenośna', note: 'bez instalacji' },
+      { os: 'mac',   test: n => /\.dmg$/i.test(n),            title: 'macOS', note: 'Intel i Apple Silicon' },
+      { os: 'linux', test: n => /\.appimage$/i.test(n),       title: 'Linux — AppImage', note: 'dowolna dystrybucja' },
+      { os: 'linux', test: n => /\.deb$/i.test(n),            title: 'Linux — .deb', note: 'Ubuntu, Debian' },
+    ];
+    const ua = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent;
+    const myOs = /win/i.test(ua) ? 'win' : /mac/i.test(ua) ? 'mac' : /linux|x11/i.test(ua) ? 'linux' : '';
+    const found = [];
+    for (const k of KINDS) {
+      const a = assets.find(x => k.test(x.name));
+      if (a) found.push({ ...k, url: a.browser_download_url, size: a.size });
+    }
+    if (!found.length) return;
+    // system użytkownika na początek, jego pierwszy plik wyróżniony
+    found.sort((a, b) => (b.os === myOs) - (a.os === myOs));
+    const list = document.getElementById('dlList');
+    list.innerHTML = '';
+    found.forEach((f, i) => {
+      const a = document.createElement('a');
+      a.className = 'dl' + (i === 0 && f.os === myOs ? ' main' : '');
+      a.href = f.url;
+      const mb = f.size ? Math.round(f.size / 1048576) + ' MB' : '';
+      a.innerHTML = '<b></b><small></small>';
+      a.querySelector('b').textContent = f.title;
+      a.querySelector('small').textContent = [f.note, mb].filter(Boolean).join(', ');
+      list.appendChild(a);
+    });
+    const ver = String(rel.tag_name || rel.name || '').replace(/^v/i, '');
+    const date = rel.published_at ? new Date(rel.published_at).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    const meta = document.getElementById('appMeta');
+    meta.innerHTML = 'Wersja <b></b>' + (date ? ', wydana ' + date + '. ' : '. ') + '<a>Wszystkie wydania</a>';
+    meta.querySelector('b').textContent = ver;
+    meta.querySelector('a').href = rel.html_url || `https://github.com/${REPO}/releases`;
+  })();
+</script>
+</body>
+</html>
